@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:weather_app/screens/widgets/info_item.dart';
 import 'package:weather_app/screens/widgets/forecast_item.dart';
 import 'package:http/http.dart' as http;
@@ -168,8 +169,10 @@ class _HomeScreenState extends State<HomeScreen>
                     itemCount: forecastItems.length,
                     itemBuilder: (ctx, i) {
                       final item = forecastItems[i];
-                      final icon = getWeatherIcon(item['weather'][0]['main']);
-                      final time = item['dt_txt'].toString().substring(11, 16);
+                      final IconData icon =
+                          getWeatherIcon(item['weather'][0]['main']);
+                      final String time =
+                          DateFormat.j().format(DateTime.parse(item['dt_txt']));
                       final temp = '${item['main']['temp']} °C';
                       return ForecastItem(
                         icon: icon,
