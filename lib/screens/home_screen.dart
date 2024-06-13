@@ -3,7 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:weather_app/screens/widgets/info_item.dart';
-import 'package:weather_app/screens/widgets/forcast_item.dart';
+import 'package:weather_app/screens/widgets/forecast_item.dart';
 import 'package:http/http.dart' as http;
 import 'package:weather_app/secrets.dart';
 
@@ -17,7 +17,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  double temp = 0;
+  late Future<Map<String, dynamic>> _weatherData;
+
+  @override
+  void initState() {
+    super.initState();
+    _weatherData = getCurrentWeather();
+  }
 
   Future<Map<String, dynamic>> getCurrentWeather() async {
     String city = 'Bucharest';
@@ -30,22 +36,27 @@ class _HomeScreenState extends State<HomeScreen>
 
     try {
       final res = await http.get(url);
-
       final data = jsonDecode(res.body);
       if (data['cod'] != '200') {
-        throw 'getCurrentWeather Error';
+        throw 'Error fetching weather data';
       }
       return data;
-      // temp = data['list'][0]['main']['temp'];
     } catch (e) {
       throw e.toString();
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    getCurrentWeather();
+  IconData getWeatherIcon(String condition) {
+    switch (condition) {
+      case 'Clouds':
+        return Icons.cloud;
+      case 'Rain':
+        return Icons.waves;
+      case 'Clear':
+        return Icons.wb_sunny;
+      default:
+        return Icons.cloud_queue;
+    }
   }
 
   @override
@@ -66,13 +77,15 @@ class _HomeScreenState extends State<HomeScreen>
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              getCurrentWeather();
+              setState(() {
+                _weatherData = getCurrentWeather();
+              });
             },
           ),
         ],
       ),
-      body: FutureBuilder(
-        future: getCurrentWeather(),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: _weatherData,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -81,16 +94,18 @@ class _HomeScreenState extends State<HomeScreen>
           }
           if (snapshot.hasError) {
             return Center(
-              child: Text(snapshot.error.toString()),
+              child: Text('Error: ${snapshot.error}'),
             );
           }
 
           final data = snapshot.data!;
-
           final currentData = data['list'][0];
-
           final currentTemp = currentData['main']['temp'];
           final currentSky = currentData['weather'][0]['main'];
+          final currentPressure = currentData['main']['pressure'];
+          final currentHumidity = currentData['main']['humidity'];
+          final currentWindSpeed = currentData['wind']['speed'];
+          final forecastItems = data['list'].sublist(1);
 
           return Padding(
             padding: const EdgeInsets.all(16.0),
@@ -121,13 +136,7 @@ class _HomeScreenState extends State<HomeScreen>
                               ),
                               const SizedBox(height: 16),
                               Icon(
-                                currentSky == "Clouds"
-                                    ? Icons.cloud
-                                    : currentSky == "Rain"
-                                        ? Icons.waves
-                                        : currentSky == "Clear"
-                                            ? Icons.wb_sunny
-                                            : Icons.cloud_queue,
+                                getWeatherIcon(currentSky),
                                 size: 64,
                               ),
                               const SizedBox(height: 16),
@@ -146,42 +155,28 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  "Weather forcast",
+                  "Weather forecast",
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      ForcastItem(
-                        icon: Icons.cloud,
-                        time: "10:00",
-                        temperature: "28°C",
-                      ),
-                      ForcastItem(
-                        icon: Icons.cloud,
-                        time: "11:00",
-                        temperature: "28°C",
-                      ),
-                      ForcastItem(
-                        icon: Icons.cloud,
-                        time: "12:00",
-                        temperature: "29°C",
-                      ),
-                      ForcastItem(
-                        icon: Icons.cloud,
-                        time: "13:00",
-                        temperature: "30°C",
-                      ),
-                      ForcastItem(
-                        icon: Icons.cloud,
-                        time: "14:00",
-                        temperature: "30°C",
-                      )
-                    ],
+                SizedBox(
+                  height: 140,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: forecastItems.length,
+                    itemBuilder: (ctx, i) {
+                      final item = forecastItems[i];
+                      final icon = getWeatherIcon(item['weather'][0]['main']);
+                      final time = item['dt_txt'].toString();
+                      final temp = '${item['main']['temp']} °C';
+                      return ForecastItem(
+                        icon: icon,
+                        time: time,
+                        temperature: temp,
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -193,26 +188,26 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Row(
+                Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     InfoItem(
-                      title: 'Himidity',
+                      title: 'Humidity',
                       icon: Icons.water_drop_sharp,
-                      value: '94',
+                      value: '$currentHumidity',
                     ),
                     InfoItem(
                       title: 'Wind Speed',
                       icon: Icons.air,
-                      value: '7.67',
+                      value: '$currentWindSpeed',
                     ),
                     InfoItem(
                       title: 'Pressure',
                       icon: Icons.umbrella,
-                      value: '1006',
+                      value: '$currentPressure',
                     ),
                   ],
-                )
+                ),
               ],
             ),
           );

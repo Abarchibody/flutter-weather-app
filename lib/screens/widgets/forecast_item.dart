@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-class ForcastItem extends StatelessWidget {
+class ForecastItem extends StatelessWidget {
   final String time;
   final IconData icon;
   final String temperature;
 
-  const ForcastItem({
+  const ForecastItem({
     super.key,
     required this.time,
     required this.icon,
