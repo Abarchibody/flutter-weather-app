@@ -162,14 +162,14 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
                 SizedBox(
-                  height: 140,
+                  height: 120,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     itemCount: forecastItems.length,
                     itemBuilder: (ctx, i) {
                       final item = forecastItems[i];
                       final icon = getWeatherIcon(item['weather'][0]['main']);
-                      final time = item['dt_txt'].toString();
+                      final time = item['dt_txt'].toString().substring(11, 16);
                       final temp = '${item['main']['temp']} °C';
                       return ForecastItem(
                         icon: icon,
